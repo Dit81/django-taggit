@@ -40,6 +40,7 @@ class TaggableManager(RelatedField):
         self.creation_counter = models.Field.creation_counter
         self.related_name = related_name
         models.Field.creation_counter += 1
+        self._extra_join_sql_direct = True
 
     def __get__(self, instance, model):
         if instance is not None and instance.pk is None:
@@ -125,7 +126,7 @@ class TaggableManager(RelatedField):
         return []
 
     def get_extra_join_sql(self, connection, qn, lhs_alias, rhs_alias):
-        if rhs_alias == '%s_%s' % (self.through._meta.app_label, self.through._meta.module_name):
+        if self._extra_join_sql_direct:
             alias_to_join = rhs_alias
         else:
             alias_to_join = lhs_alias
@@ -163,12 +164,14 @@ class TaggableManager(RelatedField):
         if direct:
             join1infos = [PathInfo(from_field, object_id_field, self.model._meta, opts, self, True, False)]
             join2infos, opts, target, final = linkfield.get_path_info()
+            self._extra_join_sql_direct = True
         else:
             join1infos, _, _, _ = linkfield.get_reverse_path_info()
             join2infos = [PathInfo(object_id_field, from_field, opts, self.model._meta, self, True, False)]
             target = from_field
             final = self
             opts = self.model._meta
+            self._extra_join_sql_direct = False
 
         pathinfos.extend(join1infos)
         pathinfos.extend(join2infos)
